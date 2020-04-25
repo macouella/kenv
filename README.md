@@ -1,12 +1,16 @@
 # Kenv
 
-> Load objects into your environment, not just string variables `process.kenv.nowThis?.is?.possible!`
+> Load whole and nested json objects into your process.env at ease. `process.kenv.nowThis?.isPossible!`
 
-Kenv loads environment variables from json and jsonc (json with comments) config files.
+Kenv was designed with these in mind:
 
-## Demo
+- Lessen the burden on developers to keep local and deployed environment variables in sync.
+- Provide a simple yet flexible way of specifying environment variables with
+  support for primitives, nested structures (a.k.a. json-like).
 
-![Kenv demo](https://raw.githubusercontent.com/igimanaloto/kenv/master/readme_assets/demo.gif)
+Kenv loads json and jsonc (json with comments) files into a unique `process.kenv` property.
+Kenv also reports variations between your config files to help you keep them in sync.
+Supports node and webpack environment loading.
 
 ## Usage
 
@@ -26,7 +30,8 @@ Then chuck it at the top of your node/typescript entrypoint.
 require("kenv").config({
   // all configurations are optionsl
   environmentPath: '.kenv.json', // the main json/c file to load
-  sampleEnvironmentPath = '.kenv.sample.json', // sample file to load in source
+  environmentTemplatePath = '.kenv.sample.json', // a git-commitable sample file
+  extraSyncPaths = ['.kenv.production.json', '.kenv.staging.json'] // extra environment config files to validate against
   whitelistKeys = [], // keys to skip validation
   throwOnMissingKeys: false // throw err instead of console.warn when keys are missing.
 })
@@ -56,7 +61,10 @@ const { DefinePlugin } = require("webpack")
 // then in your webpack configurations:
 config.plugins.push(
   new DefinePlugin({
-    "process.kenv": getDefinePluginConfig(process.kenv, ["list", "of", "blacklisted", "keys]),
+    "process.kenv": getDefinePluginConfig(
+      process.kenv, // the loaded process.kenv
+      ["list", "of", "blacklisted", "keys"] // list of keys that won't be published to webpack
+    ),
   })
 )
 
@@ -64,41 +72,13 @@ config.plugins.push(
 console.log(process.kenv.some.environment.variable)
 ```
 
-Kenv exposes this helper as opposed to having a full pledged webpack plugin to
-keep maintainance simple. `getDefinePluginConfig` also accepts a list of keys to
-blacklist. This is useful if you wish to hide certain keys on the server and the
-client. An example is `next.js` which runs two sets of `webpack` configs.
-
-## The painpoints of traditional dotenv loading
-
-- Popular solutions like dotenv and yenv load flat variable structures. There is
-  a lack of primitive types (boolean, string, number) support and JSON.parse is often
-  used to convert a stringified objects for javascript use.
-- Therein lies a complexity in managing and syncing app secrets. (One separate cryptographically signed file per loaded json).
-- process.env is reserved primarily for strings. (It's bad assinging process.env with a malicious getter function!)
-- .sample.env files are regarded as a config source of truth, yet they lack syncing or validation.
-
-## How kenv solves these problems
-
-- kenv parses and loads json settings into a global process.kenv object.
-- kenv also enforces config validation checks. You specify a template
-  (.kenv.sample.json) and you'll see simple log warnings when your
-  development-only config falls out of sync. (you may also toggle error throwing
-  if that suits)
-
-Using Jsonc presents a few other benefits:
-
-- Jsonc allows you to specify object-like environment structures,
-  primitive types (booleans, strings and numbers) and comments.
-- Compile-time catching so you know how to react when a json file is misconfigured.
-- Achieve intellisense-enabled configs, through [https://json-schema.org/](JSON
-  Schema) which allows annotation of JSON documents.
-
-Apart from that, we also gain a huge win by being able to use optional chaining.
+Use `getDefinePluginConfig` to define and control which environment
+variables to publish to webpack. This is useful if you wish to hide certain
+keys from compile-time, client-side and server-side configs.
 
 ## Adding typescript intellisense for your kenv variables
 
-If you wish to achieve type-intellisense, add a similar d.ts file to your root.
+Add a similar d.ts file to your root:
 
 ```typescript
 // global.d.ts
@@ -119,14 +99,13 @@ export {}
 
 ## The two dependencies
 
-Jsonc requires a different kind of parser, so we're using `json5` for that. This
-also means that there is json5 support. As for supporting webpack, we use
-`flat` to preprocess environment keys for `webpack.DefinePlugin` consumption.
+Kenv uses `json5` to parse Jsonc and Json files. Kenv also uses `flat` to
+preprocess `webpack.DefinePlugin` configs.
 
 ## Why name it kenv?
 
-The keystrokes feel natural (try typing `process.kenv.variable`), the name is as short as meaningfully possible, and
-kenv is an available package name from npm.
+The keystrokes feel natural (try typing `process.kenv.variable`), the name is as
+short and meaningful as possible, and kenv is an available package name from npm.
 
 ## Inspiration
 

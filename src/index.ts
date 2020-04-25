@@ -63,38 +63,42 @@ const loadFileIntoProcess = (environmentPath: string) => {
 const validateEnvironment = ({
   loadedVariables,
   loadedVariablesPath,
-  sampleEnvironmentPath,
+  environmentSyncPath,
   whitelistKeys,
   throwOnMissingKeys = false,
 }: {
   loadedVariables: object
   loadedVariablesPath: string
-  sampleEnvironmentPath: string
+  environmentSyncPath: string
   whitelistKeys: Set<string>
   throwOnMissingKeys?: boolean
 }) => {
-  const sampleVariables = loadEnvironmentFile(sampleEnvironmentPath)
+  const environmentSyncVariables = loadEnvironmentFile(environmentSyncPath)
 
-  const sampleKeys = Object.keys(loadedVariables)
-  const envKeys = Object.keys(sampleVariables)
-  const missingSampleKeys: string[] = []
+  const environmentSyncKeys = Object.keys(loadedVariables)
+  const missingEnvironmentSyncKeys: string[] = []
+
+  const envKeys = Object.keys(environmentSyncVariables)
   const missingEnvKeys: string[] = []
 
-  sampleKeys.forEach((sampleKey) => {
-    if (!envKeys.includes(sampleKey) && !whitelistKeys.has(sampleKey)) {
-      missingSampleKeys.push(sampleKey)
+  environmentSyncKeys.forEach((environmentSyncKey) => {
+    if (
+      !envKeys.includes(environmentSyncKey) &&
+      !whitelistKeys.has(environmentSyncKey)
+    ) {
+      missingEnvironmentSyncKeys.push(environmentSyncKey)
     }
   })
 
   envKeys.forEach((envKey) => {
-    if (!sampleKeys.includes(envKey) && !whitelistKeys.has(envKey)) {
+    if (!environmentSyncKeys.includes(envKey) && !whitelistKeys.has(envKey)) {
       missingEnvKeys.push(envKey)
     }
   })
 
   if (missingEnvKeys.length > 0) {
     const errorMessage = `kenv [warning]:
-Env file ${loadedVariablesPath} is missing keys from ${sampleEnvironmentPath}
+Env file ${loadedVariablesPath} is missing keys from ${environmentSyncPath}
 ${missingEnvKeys.join(", ")}`
 
     if (throwOnMissingKeys) {
@@ -104,10 +108,10 @@ ${missingEnvKeys.join(", ")}`
     }
   }
 
-  if (missingSampleKeys.length > 0) {
+  if (missingEnvironmentSyncKeys.length > 0) {
     const errorMessage = `kenv [warning]:
-Env file ${sampleEnvironmentPath} is missing keys from ${loadedVariablesPath}
-${missingSampleKeys.join(", ")}`
+Env file ${environmentSyncPath} is missing keys from ${loadedVariablesPath}
+${missingEnvironmentSyncKeys.join(", ")}`
 
     if (throwOnMissingKeys) {
       throw new Error(errorMessage)
@@ -119,24 +123,32 @@ ${missingSampleKeys.join(", ")}`
 
 export type DotJsoncConfig = {
   environmentPath?: string
-  sampleEnvironmentPath?: string
+  environmentTemplatePath?: string
+  extraSyncPaths?: string[]
   whitelistKeys?: Array<string>
   throwOnMissingKeys?: boolean
 }
 
+/**
+ * Load json and jsonc (json with comments) files into a unique `process.kenv` property.
+ */
 export const config = ({
   environmentPath = DEFAULT_ENV_FILE,
-  sampleEnvironmentPath = DEFAULT_ENV_SAMPLE_FILE,
+  environmentTemplatePath = DEFAULT_ENV_SAMPLE_FILE,
+  extraSyncPaths = [],
   whitelistKeys = [],
   throwOnMissingKeys = false,
 }: DotJsoncConfig = {}) => {
   const loadedVariables = loadFileIntoProcess(environmentPath)
-  validateEnvironment({
-    loadedVariables,
-    loadedVariablesPath: environmentPath,
-    sampleEnvironmentPath,
-    throwOnMissingKeys,
-    whitelistKeys: new Set(whitelistKeys),
-  })
+  const mergedSyncPaths = [environmentTemplatePath, ...extraSyncPaths]
+  mergedSyncPaths.forEach((environmentSyncPath) =>
+    validateEnvironment({
+      loadedVariables,
+      loadedVariablesPath: environmentPath,
+      environmentSyncPath,
+      throwOnMissingKeys,
+      whitelistKeys: new Set(whitelistKeys),
+    })
+  )
   return loadedVariables
 }

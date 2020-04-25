@@ -24,6 +24,11 @@ const TEST_CONFIGS = {
     hello: 1,
     matching: 1,
   },
+  "/cwd/MATCHING_EXTRA_ENV.jsonc": {
+    hello: 1,
+    matching: 1,
+    notmatching: 1,
+  },
   "/cwd/MATCHING_BADINPUT_ENV.jsonc": {
     hello: 1,
     matching: 1,
@@ -68,7 +73,7 @@ describe("config", () => {
   it("should write to process.kenv", () => {
     config({
       environmentPath: "MATCHING_ENV.jsonc",
-      sampleEnvironmentPath: "MATCHING_SAMPLE_ENV.jsonc",
+      environmentTemplatePath: "MATCHING_SAMPLE_ENV.jsonc",
       whitelistKeys: [],
     })
     expect(process.kenv.hello).toEqual(1)
@@ -78,7 +83,7 @@ describe("config", () => {
   it("should return a config object", () => {
     const fileSummary = config({
       environmentPath: "MATCHING_ENV.jsonc",
-      sampleEnvironmentPath: "MATCHING_SAMPLE_ENV.jsonc",
+      environmentTemplatePath: "MATCHING_SAMPLE_ENV.jsonc",
       whitelistKeys: [],
     })
     expect(fileSummary).toMatchObject(TEST_CONFIGS["/cwd/MATCHING_ENV.jsonc"])
@@ -87,11 +92,10 @@ describe("config", () => {
   it("should warn the user if the configs do not match", () => {
     const fileSummary = config({
       environmentPath: "MATCHING_ENV.jsonc",
-      sampleEnvironmentPath: "MISSING_SAMPLE_ENV.jsonc",
+      environmentTemplatePath: "MISSING_SAMPLE_ENV.jsonc",
       whitelistKeys: [],
     })
     const message = warnSpy.mock.calls[0][0]
-    console.log(message)
     expect(message.includes("missing keys")).toBeTruthy()
   })
 
@@ -100,7 +104,7 @@ describe("config", () => {
     try {
       config({
         environmentPath: "MATCHING_ENV.jsonc",
-        sampleEnvironmentPath: "MISSING_SAMPLE_ENV.jsonc",
+        environmentTemplatePath: "MISSING_SAMPLE_ENV.jsonc",
         whitelistKeys: [],
         throwOnMissingKeys: true,
       })
@@ -113,7 +117,7 @@ describe("config", () => {
   it("should not check against whitelisted keys", () => {
     config({
       environmentPath: "MATCHING_ENV.jsonc",
-      sampleEnvironmentPath: "MISSING_SAMPLE_ENV.jsonc",
+      environmentTemplatePath: "MISSING_SAMPLE_ENV.jsonc",
       whitelistKeys: ["matching"],
     })
     expect(warnSpy).toHaveBeenCalledTimes(0)
@@ -121,7 +125,7 @@ describe("config", () => {
   it("should cleanse invalid keys", () => {
     config({
       environmentPath: "MATCHING_BADINPUT_ENV.jsonc",
-      sampleEnvironmentPath: "MATCHING_SAMPLE_BADINPUT_ENV.jsonc",
+      environmentTemplatePath: "MATCHING_SAMPLE_BADINPUT_ENV.jsonc",
       whitelistKeys: [],
     })
     expect(warnSpy).toHaveBeenCalled()
@@ -131,5 +135,14 @@ describe("config", () => {
         "matching": 1,
       }
     `)
+  })
+  it("should check extra environment config files", () => {
+    config({
+      environmentPath: "MATCHING_ENV.jsonc",
+      extraSyncPaths: ["MATCHING_EXTRA_ENV.jsonc"],
+      environmentTemplatePath: "MATCHING_SAMPLE_ENV.jsonc",
+      whitelistKeys: [],
+    })
+    expect(warnSpy).toHaveBeenCalledTimes(1)
   })
 })
