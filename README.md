@@ -36,12 +36,38 @@ import { config } from kenv
 config({})
 
 // then anywhere else in your code
-process.kenv.variable?.to?.access
+console.log(process.kenv.variable.to.access)
 ```
 
 - Note that config() also returns the loaded json object.
 - For jsonc support in your editor, ensure that you're loading the json in jsonc
   syntax.
+
+## Usage with webpack
+
+To use `process.kenv` in webpack-based environments, you may use the
+`getDefinePluginConfig` helper and pass it to `webpack.definePlugin`:
+
+```javascript
+require("kenv").config()
+const { getDefinePluginConfig } = require("kenv/webpack")
+const { DefinePlugin } = require("webpack")
+
+// then in your webpack configurations:
+config.plugins.push(
+  new DefinePlugin({
+    "process.kenv": getDefinePluginConfig(process.kenv, ["list", "of", "blacklisted", "keys]),
+  })
+)
+
+// then anywhere else in your webpack-based js/ts code
+console.log(process.kenv.some.environment.variable)
+```
+
+Kenv exposes this helper as opposed to having a full pledged webpack plugin to
+keep maintainance simple. `getDefinePluginConfig` also accepts a list of keys to
+blacklist. This is useful if you wish to hide certain keys on the server and the
+client. An example is `next.js` which runs two sets of `webpack` configs.
 
 ## The painpoints of traditional dotenv loading
 
@@ -70,16 +96,6 @@ Using Jsonc presents a few other benefits:
 
 Apart from that, we also gain a huge win by being able to use optional chaining.
 
-## The one dependency
-
-Jsonc requires a different kind of parser, so we're using json5 for that. This
-also means that there is json5 support.
-
-## Why name it kenv?
-
-The keystrokes feel natural (try typing `process.kenv.variable`), the name is as short as meaningfully possible, and
-kenv is an available package name from npm.
-
 ## Adding typescript intellisense for your kenv variables
 
 If you wish to achieve type-intellisense, add a similar d.ts file to your root.
@@ -100,6 +116,17 @@ declare global {
 // convert it into a module by adding an empty export statement.
 export {}
 ```
+
+## The two dependencies
+
+Jsonc requires a different kind of parser, so we're using `json5` for that. This
+also means that there is json5 support. As for supporting webpack, we use
+`flat` to preprocess environment keys for `webpack.DefinePlugin` consumption.
+
+## Why name it kenv?
+
+The keystrokes feel natural (try typing `process.kenv.variable`), the name is as short as meaningfully possible, and
+kenv is an available package name from npm.
 
 ## Inspiration
 

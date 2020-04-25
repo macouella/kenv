@@ -24,6 +24,16 @@ const TEST_CONFIGS = {
     hello: 1,
     matching: 1,
   },
+  "/cwd/MATCHING_BADINPUT_ENV.jsonc": {
+    hello: 1,
+    matching: 1,
+    ".badKey": 1,
+  },
+  "/cwd/MATCHING_SAMPLE_BADINPUT_ENV.jsonc": {
+    hello: 1,
+    matching: 1,
+    ".badKey": 1,
+  },
   "/cwd/MISSING_SAMPLE_ENV.jsonc": {
     hello: 1,
   },
@@ -107,5 +117,19 @@ describe("config", () => {
       whitelistKeys: ["matching"],
     })
     expect(warnSpy).toHaveBeenCalledTimes(0)
+  })
+  it("should cleanse invalid keys", () => {
+    config({
+      environmentPath: "MATCHING_BADINPUT_ENV.jsonc",
+      sampleEnvironmentPath: "MATCHING_SAMPLE_BADINPUT_ENV.jsonc",
+      whitelistKeys: [],
+    })
+    expect(warnSpy).toHaveBeenCalled()
+    expect(process.kenv).toMatchInlineSnapshot(`
+      Object {
+        "hello": 1,
+        "matching": 1,
+      }
+    `)
   })
 })

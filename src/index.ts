@@ -7,6 +7,7 @@
 import fs from "fs"
 import path from "path"
 import { parse } from "json5"
+import { cleanseKeys } from "./utils"
 const DEFAULT_ENV_FILE = ".kenv.json"
 const DEFAULT_ENV_SAMPLE_FILE = ".kenv.sample.json"
 
@@ -29,8 +30,9 @@ const loadEnvironmentFile = (environmentPath: string) => {
  * @param {object} environmentVariables
  */
 const loadToProcess = (environmentVariables: Record<string, any>) => {
+  const cleansedVariables = cleanseKeys(environmentVariables)
   process.kenv = process.kenv || {}
-  return Object.entries(environmentVariables).reduce(function (
+  return Object.entries(cleansedVariables).reduce(function (
     accumulator,
     [_key, value]
   ) {
@@ -91,7 +93,7 @@ const validateEnvironment = ({
   })
 
   if (missingEnvKeys.length > 0) {
-    const errorMessage = `[warn] env-loader:
+    const errorMessage = `kenv [warning]:
 Env file ${loadedVariablesPath} is missing keys from ${sampleEnvironmentPath}
 ${missingEnvKeys.join(", ")}`
 
@@ -103,7 +105,7 @@ ${missingEnvKeys.join(", ")}`
   }
 
   if (missingSampleKeys.length > 0) {
-    const errorMessage = `env-loader [warning]:
+    const errorMessage = `kenv [warning]:
 Env file ${sampleEnvironmentPath} is missing keys from ${loadedVariablesPath}
 ${missingSampleKeys.join(", ")}`
 
