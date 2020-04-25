@@ -2,7 +2,7 @@
 
 > Load objects into your environment, not just string variables `process.kenv.nowThis?.is?.possible!`
 
-Kenv supports json and jsonc (json with comments) environment config files.
+Kenv loads environment variables from json and jsonc (json with comments) config files.
 
 ## Demo
 
