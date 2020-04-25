@@ -1,6 +1,6 @@
 {
   "name": "kenv",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Load environment variables using jsonc.",
   "keywords": [
     "dotenv",
