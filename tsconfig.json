@@ -1,6 +1,4 @@
 {
-  "include": ["src/**/*", "*.d.ts"],
-  "exclude": ["**/*.test.ts"],
   "compilerOptions": {
     "resolveJsonModule": true,
     /* Basic Options */

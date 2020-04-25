@@ -11,7 +11,7 @@
   "types": "./lib/index.d.ts",
   "main": "./lib/index.js",
   "scripts": {
-    "build:lib": "tsc",
+    "build:lib": "tsc --project tsconfig.lib.json",
     "build": "yarn clean && yarn build:lib",
     "clean": "rm -rf lib;",
     "update": "ncu -u",
