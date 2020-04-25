@@ -1,5 +1,3 @@
-![Kenv](https://raw.githubusercontent.com/igimanaloto/kenv/master/readme_assets/kenv.png)
-
 # Kenv
 
 > Load objects into your environment, not just string variables `process.kenv.nowThis?.is?.possible!`
