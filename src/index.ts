@@ -127,7 +127,7 @@ export const config = ({
   sampleEnvironmentPath = DEFAULT_ENV_SAMPLE_FILE,
   whitelistKeys = [],
   throwOnMissingKeys = false,
-}: DotJsoncConfig) => {
+}: DotJsoncConfig = {}) => {
   const loadedVariables = loadFileIntoProcess(environmentPath)
   validateEnvironment({
     loadedVariables,
