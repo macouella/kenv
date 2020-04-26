@@ -28,12 +28,13 @@ Then chuck it at the top of your node/typescript entrypoint.
 ```javascript
 // sample.js
 require("kenv").config({
-  // all configurations are optionsl
+  // all configurations are optional
   environmentPath: '.kenv.json', // the main json/c file to load
   environmentTemplatePath = '.kenv.sample.json', // a git-commitable sample file
   extraSyncPaths = ['.kenv.production.json', '.kenv.staging.json'] // extra environment config files to validate against
   whitelistKeys = [], // keys to skip validation
-  throwOnMissingKeys: false // throw err instead of console.warn when keys are missing.
+  throwOnMissingKeys: false, // throw err instead of console.warn when keys are missing.
+  freeze: false // makes the contents of process.kenv readonly. false by default.
 })
 
 // or
@@ -100,7 +101,8 @@ export {}
 ## The two dependencies
 
 Kenv uses `json5` to parse Jsonc and Json files. Kenv also uses `flat` to
-preprocess `webpack.DefinePlugin` configs.
+preprocess `webpack.DefinePlugin` configs. When enabled, `deep-freeze`is used to
+make the process.kenv unwritable.
 
 ## Why name it kenv?
 

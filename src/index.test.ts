@@ -13,8 +13,6 @@ jest.mock("fs")
 jest.mock("path")
 jest.mock("json5")
 
-const ORIGINAL_ENV = { ...process.env }
-
 const TEST_CONFIGS = {
   "/cwd/MATCHING_ENV.jsonc": {
     hello: 1,
@@ -78,18 +76,48 @@ beforeAll(() => {
 
 beforeEach(() => {
   warnSpy.mockReset()
-  Object.assign(process.env, ORIGINAL_ENV)
 })
 
 describe("config", () => {
-  it("should write to process.kenv", () => {
-    config({
+  it("should write to process.kenv and return an object", () => {
+    const result = config({
       environmentPath: "MATCHING_ENV.jsonc",
       environmentTemplatePath: "MATCHING_SAMPLE_ENV.jsonc",
       whitelistKeys: [],
     })
-    expect(process.kenv.hello).toEqual(1)
-    expect(process.kenv.matching).toEqual(1)
+    const innerProperty = Object.getOwnPropertyDescriptor(
+      process.kenv,
+      "hello"
+    )!
+
+    expect(process.kenv).toMatchInlineSnapshot(`
+      Object {
+        "hello": 1,
+        "matching": 1,
+      }
+    `)
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "hello": 1,
+        "matching": 1,
+      }
+    `)
+    expect(innerProperty.writable).toBeTruthy()
+  })
+
+  it("should freeze the process.kenv", () => {
+    config({
+      environmentPath: "MATCHING_ENV.jsonc",
+      environmentTemplatePath: "MATCHING_SAMPLE_ENV.jsonc",
+      whitelistKeys: [],
+      freeze: true,
+    })
+
+    const innerProperty = Object.getOwnPropertyDescriptor(
+      process.kenv,
+      "hello"
+    )!
+    expect(innerProperty.writable).toBeFalsy()
   })
 
   it("should return a config object", () => {

@@ -6,6 +6,7 @@
 
 import fs from "fs"
 import path from "path"
+import deepFreeze from "deep-freeze"
 import { parse } from "json5"
 import { cleanseKeys } from "./utils"
 const DEFAULT_ENV_FILE = ".kenv.json"
@@ -29,31 +30,24 @@ const loadEnvironmentFile = (environmentPath: string) => {
  * Loops through an object and appends the each key value to the process.
  * @param {object} environmentVariables
  */
-const loadToProcess = (environmentVariables: Record<string, any>) => {
+const loadToProcess = (
+  environmentVariables: Record<string, any>,
+  freeze?: boolean
+) => {
   const cleansedVariables = cleanseKeys(environmentVariables)
-  process.kenv = process.kenv || {}
-  return Object.entries(cleansedVariables).reduce(function (
-    accumulator,
-    [_key, value]
-  ) {
-    const key = _key as string
-    if (!Object.prototype.hasOwnProperty.call(process.kenv, key)) {
-      process.kenv[key] = value
-    }
-    accumulator[key] = process.kenv[key]
-    return accumulator
-  },
-  {} as Record<string, any>)
+  if (freeze) deepFreeze(cleansedVariables)
+  process.kenv = cleansedVariables
+  return process.kenv
 }
 
 /**
  * Loads an environment file into process.
  * @param {string} environmentPath
  */
-const loadFileIntoProcess = (environmentPath: string) => {
+const loadFileIntoProcess = (environmentPath: string, freeze?: boolean) => {
   const loadedVariables = loadEnvironmentFile(environmentPath)
-  loadToProcess(loadedVariables)
-  return loadedVariables
+  const processKenv = loadToProcess(loadedVariables, freeze)
+  return processKenv
 }
 
 /**
@@ -127,6 +121,7 @@ export type DotJsoncConfig = {
   extraSyncPaths?: string[]
   whitelistKeys?: Array<string>
   throwOnMissingKeys?: boolean
+  freeze?: boolean
 }
 
 /**
@@ -138,8 +133,9 @@ export const config = ({
   extraSyncPaths = [],
   whitelistKeys = [],
   throwOnMissingKeys = false,
+  freeze = false,
 }: DotJsoncConfig = {}) => {
-  const loadedVariables = loadFileIntoProcess(environmentPath)
+  const loadedVariables = loadFileIntoProcess(environmentPath, freeze)
   const mergedSyncPaths = [environmentTemplatePath, ...extraSyncPaths]
   mergedSyncPaths.forEach((environmentSyncPath) =>
     validateEnvironment({
