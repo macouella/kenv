@@ -33,12 +33,22 @@ const TEST_CONFIGS = {
     hello: 1,
     matching: 1,
     ".badKey": 1,
+    nested: {
+      okay: 1,
+      ".badKey1": 1,
+      "-badKey1": 1,
+    },
     "okay.key": 1,
   },
   "/cwd/MATCHING_SAMPLE_BADINPUT_ENV.jsonc": {
     hello: 1,
     matching: 1,
     ".badKey": 1,
+    nested: {
+      okay: 1,
+      ".badKey1": 1,
+      "-badKey1": 1,
+    },
     "okay.key": 1,
   },
   "/cwd/MISSING_SAMPLE_ENV.jsonc": {
@@ -116,7 +126,7 @@ describe("config", () => {
     expect(thrownError.message.includes("missing keys"))
   })
 
-  it("should not check against whitelisted keys", () => {
+  it("should not warn the user against whitelisted keys", () => {
     config({
       environmentPath: "MATCHING_ENV.jsonc",
       environmentTemplatePath: "MISSING_SAMPLE_ENV.jsonc",
@@ -124,7 +134,7 @@ describe("config", () => {
     })
     expect(warnSpy).toHaveBeenCalledTimes(0)
   })
-  it("should cleanse invalid keys", () => {
+  it("should cleanse bad keys and warn the user", () => {
     config({
       environmentPath: "MATCHING_BADINPUT_ENV.jsonc",
       environmentTemplatePath: "MATCHING_SAMPLE_BADINPUT_ENV.jsonc",
@@ -135,13 +145,16 @@ describe("config", () => {
       Object {
         "hello": 1,
         "matching": 1,
+        "nested": Object {
+          "okay": 1,
+        },
         "okay": Object {
           "key": 1,
         },
       }
     `)
   })
-  it("should check extra environment config files", () => {
+  it("warns the user of missing keys from extra syncPaths", () => {
     config({
       environmentPath: "MATCHING_ENV.jsonc",
       extraSyncPaths: ["MATCHING_EXTRA_ENV.jsonc"],

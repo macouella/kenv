@@ -14,7 +14,10 @@ export const cleanseKeys = <T extends Record<string, any>>(
   const failedKeys: string[] = []
 
   const reduced = Object.entries(flattened).reduce((acc, [key, value]) => {
-    if (REGEX_VALID_KEY.test(key)) {
+    const isValidKey = key
+      .split(".")
+      .every((keyPart) => REGEX_VALID_KEY.test(keyPart))
+    if (isValidKey) {
       acc[key] = value
     } else {
       failedKeys.push(key)
