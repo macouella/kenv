@@ -33,11 +33,13 @@ const TEST_CONFIGS = {
     hello: 1,
     matching: 1,
     ".badKey": 1,
+    "okay.key": 1,
   },
   "/cwd/MATCHING_SAMPLE_BADINPUT_ENV.jsonc": {
     hello: 1,
     matching: 1,
     ".badKey": 1,
+    "okay.key": 1,
   },
   "/cwd/MISSING_SAMPLE_ENV.jsonc": {
     hello: 1,
@@ -133,6 +135,9 @@ describe("config", () => {
       Object {
         "hello": 1,
         "matching": 1,
+        "okay": Object {
+          "key": 1,
+        },
       }
     `)
   })

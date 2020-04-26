@@ -1,5 +1,7 @@
 import { flatten, unflatten } from "flat"
-const REGEX_VALID_KEY = /^\w+$/
+
+// We only want keys that start with alphanumeric and underscores.
+const REGEX_VALID_KEY = /^\w/
 
 /**
  * Removes invalid values from an object.
