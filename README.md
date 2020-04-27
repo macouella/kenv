@@ -21,7 +21,7 @@ yarn add kenv
 # [or]
 npm i --save kenv
 
-# prepare the config files
+# prepare the two config files that kenv requires
 echo '{"TEST_KEY":{"INNER_KEY":true}}' > ./.kenv.json # development-only config
 echo '{"TEST_KEY":{"INNER_KEY":true}}' > ./.kenv.sample.json # sample config committed to source
 ```
@@ -34,9 +34,9 @@ require("kenv").config({
   // all configurations are optional
   environmentPath: '.kenv.json', // the main jsonc file to load
   environmentTemplatePath = '.kenv.sample.json', // template file to validate syncing
-  extraSyncPaths = ['.kenv.production.json', '.kenv.staging.json'] // extra config files to validate syncing
   whitelistKeys = [], // keys to ignore for validation
   throwOnMissingKeys: false, // exit with an error instead of a console.warn when keys are out of sync  (default: false)
+  devSyncPaths = ['.kenv.production.json', '.kenv.staging.json'] // extra config files to validate syncing during development
   freeze: false, // makes process.kenv readonly (default: false)
   logUsage: false, // logs usage of environment keys on the console (default: false)
 })
@@ -52,6 +52,8 @@ console.log(process.kenv.TEST_KEY.INNER_KEY) // logs true
 - config() also returns the loaded json object.
 - inline comments are supported in json files.
 - nested object access is case-sensitive.
+- use `devSyncPaths` while developing to ensure that the different config
+  files are in sync.
 
 ## The logUsage option
 

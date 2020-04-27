@@ -166,11 +166,24 @@ const validateEnvironment = ({
 export type DotJsoncConfig = {
   environmentPath?: string
   environmentTemplatePath?: string
-  extraSyncPaths?: string[]
+  devSyncPaths?: string[]
   whitelistKeys?: Array<string>
   throwOnMissingKeys?: boolean
   freeze?: boolean
   logUsage?: boolean
+}
+
+const getExistingSyncPaths = (devSyncPaths: string[]) => {
+  return devSyncPaths.filter((filePath) => {
+    const resolvedFile = path.resolve(process.cwd(), filePath)
+    const fileExists = fs.existsSync(resolvedFile)
+    if (!fileExists) {
+      console.warn(
+        `kenv [warning]: extraSyncPath ${resolvedFile} does not exist. If this was intentional, you may safely ignore this message.`
+      )
+    }
+    return fileExists
+  })
 }
 
 /**
@@ -179,7 +192,7 @@ export type DotJsoncConfig = {
 export const config = ({
   environmentPath = DEFAULT_ENV_FILE,
   environmentTemplatePath = DEFAULT_ENV_SAMPLE_FILE,
-  extraSyncPaths = [],
+  devSyncPaths = [],
   whitelistKeys = [],
   throwOnMissingKeys = false,
   freeze = false,
@@ -189,7 +202,8 @@ export const config = ({
     processKenv: loadedVariables,
     loadedFile: fullEnvironmentPath,
   } = loadFileIntoProcess(environmentPath, freeze)
-  const mergedSyncPaths = [environmentTemplatePath, ...extraSyncPaths]
+  const existingSyncPaths = getExistingSyncPaths(devSyncPaths)
+  const mergedSyncPaths = [environmentTemplatePath, ...existingSyncPaths]
   mergedSyncPaths.forEach((environmentSyncPath) =>
     validateEnvironment({
       loadedVariables,

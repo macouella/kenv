@@ -187,7 +187,7 @@ describe("config", () => {
   it("warns the user of missing keys from extra syncPaths", () => {
     config({
       environmentPath: "MATCHING_ENV.jsonc",
-      extraSyncPaths: ["MATCHING_EXTRA_ENV.jsonc"],
+      devSyncPaths: ["MATCHING_EXTRA_ENV.jsonc"],
       environmentTemplatePath: "MATCHING_SAMPLE_ENV.jsonc",
       whitelistKeys: [],
     })
