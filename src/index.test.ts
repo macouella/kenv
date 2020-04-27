@@ -3,7 +3,7 @@ import _fs from "fs"
 import _path from "path"
 import _json5 from "json5"
 import { mocked } from "ts-jest/utils"
-import { config } from "."
+import { config, getRedactedDump } from "."
 
 const fs = mocked(_fs)
 const path = mocked(_path)
@@ -15,20 +15,20 @@ jest.mock("json5")
 
 const TEST_CONFIGS = {
   "/cwd/MATCHING_ENV.jsonc": {
-    hello: 1,
+    hello: "whyhellothere",
     matching: 1,
   },
   "/cwd/MATCHING_SAMPLE_ENV.jsonc": {
-    hello: 1,
+    hello: "whyhellothere",
     matching: 1,
   },
   "/cwd/MATCHING_EXTRA_ENV.jsonc": {
-    hello: 1,
+    hello: "whyhellothere",
     matching: 1,
     notmatching: 1,
   },
   "/cwd/MATCHING_BADINPUT_ENV.jsonc": {
-    hello: 1,
+    hello: "whyhellothere",
     matching: 1,
     ".badKey": 1,
     nested: {
@@ -39,7 +39,7 @@ const TEST_CONFIGS = {
     "okay.key": 1,
   },
   "/cwd/MATCHING_SAMPLE_BADINPUT_ENV.jsonc": {
-    hello: 1,
+    hello: "whyhellothere",
     matching: 1,
     ".badKey": 1,
     nested: {
@@ -50,14 +50,15 @@ const TEST_CONFIGS = {
     "okay.key": 1,
   },
   "/cwd/MISSING_SAMPLE_ENV.jsonc": {
-    hello: 1,
+    hello: "whyhellothere",
   },
   "/cwd/MISSING_ENV.jsonc": {
-    hello: 1,
+    hello: "whyhellothere",
   },
 }
 const cwdSpy = jest.spyOn(process, "cwd")
 const warnSpy = jest.spyOn(console, "warn")
+const logSpy = jest.spyOn(console, "log")
 
 beforeAll(() => {
   cwdSpy.mockReturnValue("/cwd")
@@ -76,6 +77,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   warnSpy.mockReset()
+  logSpy.mockReset()
 })
 
 describe("config", () => {
@@ -92,13 +94,13 @@ describe("config", () => {
 
     expect(process.kenv).toMatchInlineSnapshot(`
       Object {
-        "hello": 1,
+        "hello": "whyhellothere",
         "matching": 1,
       }
     `)
     expect(result).toMatchInlineSnapshot(`
       Object {
-        "hello": 1,
+        "hello": "whyhellothere",
         "matching": 1,
       }
     `)
@@ -171,7 +173,7 @@ describe("config", () => {
     expect(warnSpy).toHaveBeenCalled()
     expect(process.kenv).toMatchInlineSnapshot(`
       Object {
-        "hello": 1,
+        "hello": "whyhellothere",
         "matching": 1,
         "nested": Object {
           "okay": 1,
@@ -190,5 +192,60 @@ describe("config", () => {
       whitelistKeys: [],
     })
     expect(warnSpy).toHaveBeenCalledTimes(1)
+  })
+  it("notifies the user when keys are used", () => {
+    config({
+      environmentPath: "MATCHING_ENV.jsonc",
+      environmentTemplatePath: "MATCHING_SAMPLE_ENV.jsonc",
+      whitelistKeys: [],
+      logUsage: true,
+    })
+
+    process.kenv.hello + process.kenv.matching
+    const mergedLogs = logSpy.mock.calls.map((x) => x.join("\t")).join("\n")
+    expect(mergedLogs.includes("hello")).toBeTruthy()
+    expect(mergedLogs.includes("matching")).toBeTruthy()
+  })
+})
+
+describe("getRedactedDump", () => {
+  it("should return a redacted dump", () => {
+    config({
+      environmentPath: "MATCHING_ENV.jsonc",
+      environmentTemplatePath: "MATCHING_SAMPLE_ENV.jsonc",
+    })
+    const dump = getRedactedDump()
+    expect(dump).toMatchInlineSnapshot(`
+      Object {
+        "hello": "whyh*********",
+        "matching": 1,
+      }
+    `)
+  })
+  it("should hide keys from a redacted dump", () => {
+    config({
+      environmentPath: "MATCHING_ENV.jsonc",
+      environmentTemplatePath: "MATCHING_SAMPLE_ENV.jsonc",
+    })
+    const dump = getRedactedDump({
+      hideKeys: ["hello"],
+    })
+    expect(dump).toMatchInlineSnapshot(`
+      Object {
+        "matching": 1,
+      }
+    `)
+  })
+  it("should accept a custom object", () => {
+    const dump = getRedactedDump({
+      kenvironment: {
+        sample: 1,
+      },
+    })
+    expect(dump).toMatchInlineSnapshot(`
+      Object {
+        "sample": 1,
+      }
+    `)
   })
 })

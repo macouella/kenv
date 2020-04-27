@@ -6,9 +6,12 @@
 
 import fs from "fs"
 import path from "path"
+import colors from "colors"
 import deepFreeze from "deep-freeze"
+import { flatten } from "flat"
 import { parse } from "json5"
-import { cleanseKeys } from "./utils"
+import { addUsageLogging, cleanseKeys, maskString, truncate } from "./utils"
+import getDefinePluginConfig from "./webpack"
 const DEFAULT_ENV_FILE = ".kenv.json"
 const DEFAULT_ENV_SAMPLE_FILE = ".kenv.sample.json"
 
@@ -23,7 +26,7 @@ const loadEnvironmentFile = (environmentPath: string) => {
   }
   const environmentFile = fs.readFileSync(path.resolve(cleanPath))
   const loadedVariables = parse(environmentFile.toString())
-  return loadedVariables
+  return { loadedVariables, loadedFile: cleanPath }
 }
 
 /**
@@ -45,9 +48,35 @@ const loadToProcess = (
  * @param {string} environmentPath
  */
 const loadFileIntoProcess = (environmentPath: string, freeze?: boolean) => {
-  const loadedVariables = loadEnvironmentFile(environmentPath)
+  const { loadedVariables, loadedFile } = loadEnvironmentFile(environmentPath)
   const processKenv = loadToProcess(loadedVariables, freeze)
-  return processKenv
+  return { processKenv, loadedFile }
+}
+
+const getMissingKeysMessage = ({
+  toPath,
+  fromPath,
+  missingEnvKeys,
+  withColours,
+}: {
+  toPath: string
+  fromPath: string
+  missingEnvKeys: string[]
+  withColours?: boolean
+}) => {
+  const baseWarningName = "kenv [warning]:"
+  const warningName = withColours
+    ? colors.yellow(baseWarningName)
+    : baseWarningName
+  const joinedMissingKeys = missingEnvKeys.join(", ")
+  const missingKeys = withColours
+    ? colors.gray(joinedMissingKeys)
+    : joinedMissingKeys
+
+  const errorMessage = `${warningName} Env file ${toPath} is missing keys from ${fromPath}
+${missingKeys}`
+
+  return errorMessage
 }
 
 /**
@@ -67,11 +96,12 @@ const validateEnvironment = ({
   whitelistKeys: Set<string>
   throwOnMissingKeys?: boolean
 }) => {
-  const environmentSyncVariables = loadEnvironmentFile(environmentSyncPath)
-
+  const {
+    loadedVariables: environmentSyncVariables,
+    loadedFile: fullEnvironmentSyncPath,
+  } = loadEnvironmentFile(environmentSyncPath)
   const environmentSyncKeys = Object.keys(loadedVariables)
   const missingEnvironmentSyncKeys: string[] = []
-
   const envKeys = Object.keys(environmentSyncVariables)
   const missingEnvKeys: string[] = []
 
@@ -91,26 +121,44 @@ const validateEnvironment = ({
   })
 
   if (missingEnvKeys.length > 0) {
-    const errorMessage = `kenv [warning]:
-Env file ${loadedVariablesPath} is missing keys from ${environmentSyncPath}
-${missingEnvKeys.join(", ")}`
-
     if (throwOnMissingKeys) {
-      throw new Error(errorMessage)
+      throw new Error(
+        getMissingKeysMessage({
+          fromPath: fullEnvironmentSyncPath,
+          toPath: loadedVariablesPath,
+          missingEnvKeys,
+        })
+      )
     } else {
-      console.warn(`${errorMessage}\n`)
+      console.warn(
+        `${getMissingKeysMessage({
+          fromPath: fullEnvironmentSyncPath,
+          toPath: loadedVariablesPath,
+          missingEnvKeys,
+          withColours: true,
+        })}\n`
+      )
     }
   }
 
   if (missingEnvironmentSyncKeys.length > 0) {
-    const errorMessage = `kenv [warning]:
-Env file ${environmentSyncPath} is missing keys from ${loadedVariablesPath}
-${missingEnvironmentSyncKeys.join(", ")}`
-
     if (throwOnMissingKeys) {
-      throw new Error(errorMessage)
+      throw new Error(
+        getMissingKeysMessage({
+          fromPath: loadedVariablesPath,
+          toPath: fullEnvironmentSyncPath,
+          missingEnvKeys: missingEnvironmentSyncKeys,
+        })
+      )
     } else {
-      console.warn(`${errorMessage}\n`)
+      console.warn(
+        `${getMissingKeysMessage({
+          fromPath: loadedVariablesPath,
+          toPath: fullEnvironmentSyncPath,
+          missingEnvKeys: missingEnvironmentSyncKeys,
+          withColours: true,
+        })}\n`
+      )
     }
   }
 }
@@ -122,6 +170,7 @@ export type DotJsoncConfig = {
   whitelistKeys?: Array<string>
   throwOnMissingKeys?: boolean
   freeze?: boolean
+  logUsage?: boolean
 }
 
 /**
@@ -134,17 +183,64 @@ export const config = ({
   whitelistKeys = [],
   throwOnMissingKeys = false,
   freeze = false,
+  logUsage = false,
 }: DotJsoncConfig = {}) => {
-  const loadedVariables = loadFileIntoProcess(environmentPath, freeze)
+  const {
+    processKenv: loadedVariables,
+    loadedFile: fullEnvironmentPath,
+  } = loadFileIntoProcess(environmentPath, freeze)
   const mergedSyncPaths = [environmentTemplatePath, ...extraSyncPaths]
   mergedSyncPaths.forEach((environmentSyncPath) =>
     validateEnvironment({
       loadedVariables,
-      loadedVariablesPath: environmentPath,
+      loadedVariablesPath: fullEnvironmentPath,
       environmentSyncPath,
       throwOnMissingKeys,
       whitelistKeys: new Set(whitelistKeys),
     })
   )
+
+  if (logUsage) {
+    addUsageLogging({ obj: process.kenv })
+  }
+
   return loadedVariables
 }
+
+type GetRedactedDumpConfig = {
+  kenvironment?: Record<string, any>
+  truncateLength?: number
+  decimalPercentageToShow?: number
+  hideKeys?: string[]
+}
+
+/**
+ * Returns a flattened and redacted (masked) kenv dump.
+ * Can be used along-side `console.log` to print a safe summary of the current
+ * environment variables.
+ */
+export const getRedactedDump = ({
+  kenvironment,
+  truncateLength = 0,
+  decimalPercentageToShow = 0.3,
+  hideKeys = [],
+}: GetRedactedDumpConfig = {}) => {
+  const env = kenvironment || process.kenv
+  flatten(env) as Record<string, any>
+  const redacted = Object.entries(env).reduce((acc, [key, _value]) => {
+    if (!hideKeys.includes(key)) {
+      let value = ["string"].includes(typeof _value)
+        ? maskString(_value, decimalPercentageToShow)
+        : _value
+
+      if (truncateLength) {
+        value = truncate(value, truncateLength)
+      }
+      acc[key] = value
+    }
+    return acc
+  }, {} as Record<string, any>)
+  return redacted
+}
+
+export { getDefinePluginConfig }
