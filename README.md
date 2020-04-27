@@ -81,10 +81,11 @@ config()
 // then in your webpack configurations:
 webpackConfig.plugins.push(
   new DefinePlugin({
-    "process.kenv": getDefinePluginConfig(
-      process.kenv, // the loaded process.kenv
-      ["list", "of.blacklisted.keys"] // list of keys that won't be published to webpack (case-sensitive)
-    ),
+    "process.kenv": getDefinePluginConfig({
+      // all configurations are optional
+      kenvironment: process.kenv, // specify an object. defaults to `process.kenv`
+      hideKeys: ["list", "of.hidden.keys"], // list of keys that won't be published to webpack (case-sensitive)
+    }),
   })
 )
 

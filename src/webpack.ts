@@ -5,13 +5,17 @@ import { unflatten, flatten } from "flat"
  * configuration.
  * @param kenvironment - an object to serialize
  */
-const getDefinePluginConfig = <T extends Record<string, any>>(
-  kenvironment: T,
-  blacklist: Array<string> = []
-): T => {
-  const flattened = flatten(kenvironment) as Record<string, any>
+const getDefinePluginConfig = <T extends Record<string, any>>({
+  kenvironment,
+  hideKeys = [],
+}: {
+  kenvironment?: T
+  hideKeys?: Array<string>
+} = {}): T => {
+  const env = kenvironment || process.kenv
+  const flattened = flatten(env) as Record<string, any>
   const toDefine = Object.entries(flattened).reduce((acc, [key, value]) => {
-    if (!blacklist.includes(key)) {
+    if (!hideKeys.includes(key)) {
       if (typeof value === "number" || typeof value === "boolean") {
         acc[key] = value
       } else {
