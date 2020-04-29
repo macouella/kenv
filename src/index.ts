@@ -3,14 +3,19 @@
  */
 
 // Dont check for these env vars (set in production / local only)
-
 import fs from "fs"
 import path from "path"
 import colors from "colors"
 import deepFreeze from "deep-freeze"
 import { flatten } from "flat"
 import { parse } from "json5"
-import { addUsageLogging, cleanseKeys, maskString, truncate } from "./utils"
+import {
+  addUsageLogging,
+  cleanseKeys,
+  KENV_KEYS,
+  maskString,
+  truncate,
+} from "./utils"
 import getDefinePluginConfig from "./webpack"
 const DEFAULT_ENV_FILE = ".kenv.json"
 const DEFAULT_ENV_SAMPLE_FILE = ".kenv.sample.json"
@@ -210,11 +215,11 @@ export const config = ({
       loadedVariablesPath: fullEnvironmentPath,
       environmentSyncPath,
       throwOnMissingKeys,
-      whitelistKeys: new Set(whitelistKeys),
+      whitelistKeys: new Set([...whitelistKeys, ...KENV_KEYS]),
     })
   )
 
-  if (logUsage) {
+  if (logUsage || loadedVariables.KENV_LOG_USAGE) {
     addUsageLogging({ obj: process.kenv })
   }
 
@@ -239,8 +244,7 @@ export const getRedactedDump = ({
   decimalPercentageToShow = 0.3,
   hideKeys = [],
 }: GetRedactedDumpConfig = {}) => {
-  const env = kenvironment || process.kenv
-  flatten(env) as Record<string, any>
+  const env = flatten(kenvironment || process.kenv) as Record<string, any>
   const redacted = Object.entries(env).reduce((acc, [key, _value]) => {
     if (!hideKeys.includes(key)) {
       let value = ["string"].includes(typeof _value)

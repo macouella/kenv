@@ -22,6 +22,11 @@ const TEST_CONFIGS = {
     hello: "whyhellothere",
     matching: 1,
   },
+  "/cwd/MATCHING_LOG_USAGE_ENV.jsonc": {
+    hello: "whyhellothere",
+    KENV_LOG_USAGE: true,
+    matching: 1,
+  },
   "/cwd/MATCHING_EXTRA_ENV.jsonc": {
     hello: "whyhellothere",
     matching: 1,
@@ -200,11 +205,33 @@ describe("config", () => {
       whitelistKeys: [],
       logUsage: true,
     })
+    process.kenv.hello + process.kenv.matching
+    const mergedLogs = logSpy.mock.calls.map((x) => x.join("\t")).join("\n")
+    expect(mergedLogs.includes("hello")).toBeTruthy()
+    expect(mergedLogs.includes("matching")).toBeTruthy()
+  })
+  it("notifies the user when KENV_LOG_USAGE is set in a .kenv config", () => {
+    config({
+      environmentPath: "MATCHING_LOG_USAGE_ENV.jsonc",
+      environmentTemplatePath: "MATCHING_SAMPLE_ENV.jsonc",
+      whitelistKeys: [],
+    })
 
     process.kenv.hello + process.kenv.matching
     const mergedLogs = logSpy.mock.calls.map((x) => x.join("\t")).join("\n")
     expect(mergedLogs.includes("hello")).toBeTruthy()
     expect(mergedLogs.includes("matching")).toBeTruthy()
+  })
+  it("should not notify the user of usage when reserved KENV_KEYS are called", () => {
+    config({
+      environmentPath: "MATCHING_LOG_USAGE_ENV.jsonc",
+      environmentTemplatePath: "MATCHING_SAMPLE_ENV.jsonc",
+      whitelistKeys: [],
+    })
+
+    process.kenv.KENV_LOG_USAGE
+    const mergedLogs = logSpy.mock.calls.map((x) => x.join("\t")).join("\n")
+    expect(mergedLogs.includes("KENV_LOG_USAGE")).toBeFalsy()
   })
 })
 

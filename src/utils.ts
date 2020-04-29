@@ -1,6 +1,8 @@
 import colors from "colors"
 import { flatten, unflatten } from "flat"
 
+export const KENV_KEYS = ["KENV_LOG_USAGE"]
+
 // We only want keys that start with alphanumeric and underscores.
 const REGEX_VALID_KEY = /^\w/
 
@@ -122,7 +124,7 @@ export const addUsageLogging = function ({
         obj: obj[prop],
         parentKey: [parentKey, prop].filter(Boolean).join("."),
       })
-    } else {
+    } else if (!KENV_KEYS.includes(prop)) {
       addLoggingToProperty({ obj, prop, parentKey })
     }
   })

@@ -38,7 +38,7 @@ require("kenv").config({
   throwOnMissingKeys: false, // exit with an error instead of a console.warn when keys are out of sync  (default: false)
   devSyncPaths = ['.kenv.production.json', '.kenv.staging.json'] // extra config files to validate syncing during development
   freeze: false, // makes process.kenv readonly (default: false)
-  logUsage: false, // logs usage of environment keys on the console (default: false)
+  logUsage: false, // logs usage of environment keys on the console (default: false). Alternatively, use KENV_LOG_USAGE in .kenv.json.
 })
 
 // or
