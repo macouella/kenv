@@ -218,7 +218,7 @@ describe("config", () => {
         whitelistKeys: [],
         throwOnMissingKeys: true,
       })
-    } catch (e) {
+    } catch (e: any) {
       thrownError = e
     }
     expect(thrownError.message.includes("missing keys"))
