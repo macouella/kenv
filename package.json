@@ -29,6 +29,7 @@
   "dependencies": {
     "colors": "^1.4.0",
     "deep-freeze": "^0.0.1",
+    "deepmerge": "^4.2.2",
     "flat": "^5.0.2",
     "json5": "^2.1.3"
   },

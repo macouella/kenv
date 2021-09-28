@@ -7,6 +7,7 @@ import fs from "fs"
 import path from "path"
 import colors from "colors"
 import deepFreeze from "deep-freeze"
+import deepMerge from "deepmerge"
 import { flatten } from "flat"
 import { parse } from "json5"
 import {
@@ -52,9 +53,20 @@ const loadToProcess = (
  * Loads an environment file into process.
  * @param {string} environmentPath
  */
-const loadFileIntoProcess = (environmentPath: string, freeze?: boolean) => {
+const loadVarsToProcess = ({
+  environmentPath,
+  freeze,
+  overrides,
+  initialValues,
+}: {
+  environmentPath: string
+  initialValues: Record<string, any>
+  overrides: Record<string, any>
+  freeze?: boolean
+}) => {
   const { loadedVariables, loadedFile } = loadEnvironmentFile(environmentPath)
-  const processKenv = loadToProcess(loadedVariables, freeze)
+  const mergedVars = deepMerge.all([initialValues, loadedVariables, overrides])
+  const processKenv = loadToProcess(mergedVars, freeze)
   return { processKenv, loadedFile }
 }
 
@@ -176,6 +188,8 @@ export type DotJsoncConfig = {
   throwOnMissingKeys?: boolean
   freeze?: boolean
   logUsage?: boolean
+  overrides?: Record<string, any>
+  initialValues?: Record<string, any>
 }
 
 const getExistingSyncPaths = (devSyncPaths: string[]) => {
@@ -202,11 +216,18 @@ export const config = ({
   throwOnMissingKeys = false,
   freeze = false,
   logUsage = false,
+  overrides = {},
+  initialValues = {},
 }: DotJsoncConfig = {}) => {
   const {
     processKenv: loadedVariables,
     loadedFile: fullEnvironmentPath,
-  } = loadFileIntoProcess(environmentPath, freeze)
+  } = loadVarsToProcess({
+    environmentPath,
+    initialValues,
+    overrides,
+    freeze,
+  })
   const existingSyncPaths = getExistingSyncPaths(devSyncPaths)
   const mergedSyncPaths = [environmentTemplatePath, ...existingSyncPaths]
   mergedSyncPaths.forEach((environmentSyncPath) =>

@@ -112,6 +112,69 @@ describe("config", () => {
     expect(innerProperty.writable).toBeTruthy()
   })
 
+  it("should override variables", () => {
+    const result = config({
+      environmentPath: "MATCHING_ENV.jsonc",
+      environmentTemplatePath: "MATCHING_SAMPLE_ENV.jsonc",
+      whitelistKeys: [],
+      overrides: {
+        hello: "override",
+      },
+    })
+
+    const innerProperty = Object.getOwnPropertyDescriptor(
+      process.kenv,
+      "hello"
+    )!
+
+    expect(process.kenv).toMatchInlineSnapshot(`
+      Object {
+        "hello": "override",
+        "matching": 1,
+      }
+    `)
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "hello": "override",
+        "matching": 1,
+      }
+    `)
+    expect(innerProperty.writable).toBeTruthy()
+  })
+
+  it("should set initial variables", () => {
+    const result = config({
+      environmentPath: "MATCHING_ENV.jsonc",
+      environmentTemplatePath: "MATCHING_SAMPLE_ENV.jsonc",
+      whitelistKeys: [],
+      initialValues: {
+        one: "moment",
+        hello: "shouldntexist",
+      },
+    })
+
+    const innerProperty = Object.getOwnPropertyDescriptor(
+      process.kenv,
+      "hello"
+    )!
+
+    expect(process.kenv).toMatchInlineSnapshot(`
+      Object {
+        "hello": "whyhellothere",
+        "matching": 1,
+        "one": "moment",
+      }
+    `)
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "hello": "whyhellothere",
+        "matching": 1,
+        "one": "moment",
+      }
+    `)
+    expect(innerProperty.writable).toBeTruthy()
+  })
+
   it("should freeze the process.kenv", () => {
     config({
       environmentPath: "MATCHING_ENV.jsonc",
